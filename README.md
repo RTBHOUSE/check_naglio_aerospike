@@ -43,8 +43,8 @@ Plugin parses output of "asinfo -v namespace/test", example for namespace "test"
         -o 'NAME:evicted-objects_rate_ps,CRIT:>1' \
         -o 'NAME:free-pct-disk,WARN:<60,CRIT:<52' \
         -o 'NAME:free-pct-memory,WARN:<50,CRIT:<42'
-'''
 
+```
 
 check_naglio_aeropsike_latency.pl
 --------------
