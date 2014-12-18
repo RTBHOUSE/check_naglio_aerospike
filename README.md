@@ -32,7 +32,7 @@ Plugin parses output of "asinfo -v statistics", example parameters for check  tw
 check_naglio_aeropsike_namespace.pl
 --------------
 
-Plugin parses output of "asinfo -v namespace/<nsname>", example for namespace "test":
+Plugin parses output of "asinfo -v namespace/test", example for namespace "test":
 
 <pre>
 ./check_naglio_aeropsike_namespace.pl -A -n test \
