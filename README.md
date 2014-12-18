@@ -1,7 +1,7 @@
 check_naglio_aeropsike
 ======================
 
-Nagios plugins that parse output from aerospike tools. Plugins check threshold, and produce a lot of performance data.
+Nagios plugins that parse output from aerospike tools. Plugins check thresholds, and produce a lot of performance data.
 
 
 
