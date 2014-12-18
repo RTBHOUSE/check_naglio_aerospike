@@ -1,17 +1,17 @@
-check_naglio_aeropsike
+check_naglio_aerospike
 ======================
 
 Nagios plugins that parse output from aerospike tools. Plugins check thresholds, and produce a lot of performance data.
 
 
 
-check_naglio_aeropsike_statistics.pl
+check_naglio_aerospike_statistics.pl
 --------------
 
 Plugin parses output of "asinfo -v statistics", example parameters for check  two node cluster:
 
 ```shell
-./check_naglio_aeropsike_statistics.pl -A \
+./check_naglio_aerospike_statistics.pl -A \
         -o  'NAME:cluster_integrity,CRIT:!1' \
         -o  'NAME:client_connections,WARN:>1000,CRIT:>10000' \
         -o  'NAME:cluster_size,WARN:2:2,CRIT:0:3' \
@@ -29,13 +29,13 @@ Plugin parses output of "asinfo -v statistics", example parameters for check  tw
 ```
 
 
-check_naglio_aeropsike_namespace.pl
+check_naglio_aerospike_namespace.pl
 --------------
 
 Plugin parses output of "asinfo -v namespace/test", example for namespace "test":
 
 ```shell
-./check_naglio_aeropsike_namespace.pl -A -n test \
+./check_naglio_aerospike_namespace.pl -A -n test \
         -o 'NAME:hwm-breached,CRIT:!0' \
         -o 'NAME:stop-writes,CRIT:!0' \
         -o 'NAME:available-bin-names,WARN:<10000,CRIT:<1000' \
@@ -46,14 +46,14 @@ Plugin parses output of "asinfo -v namespace/test", example for namespace "test"
 
 ```
 
-check_naglio_aeropsike_latency.pl
+check_naglio_aerospike_latency.pl
 --------------
 
 Plugin is intended to run once at 60 seconds and parses output of "asloglatency -h $histogram  -f -60 -e 1 -n 6", where $histogram=('reads','writes_master','proxy','writes_reply','udf','query','query_rec_count'):
 
 
 ```shell
-./check_naglio_aeropsike_latency.pl -A \
+./check_naglio_aerospike_latency.pl -A \
        -o  'PATTERN:.*_ms1,WARN:>1,CRIT:>10'
 ```
 

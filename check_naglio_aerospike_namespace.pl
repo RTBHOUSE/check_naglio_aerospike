@@ -2,9 +2,9 @@
 #
 # ============================== SUMMARY =====================================
 #
-# Program : check_naglio_aeropsike_statistics.pl
+# Program : check_naglio_aerospike_namespace.pl
 # Version : 0.1 ( first beta )
-# Date    : Aug 13, 2014
+# Date    : Aug 18, 2014
 # Author  : Marek Grzybowski - marek.grzybowski(at)rtbhouse.com
 # Licence : GPL - summary below, full text at http://www.fsf.org/licenses/gpl.txt
 #
@@ -41,11 +41,11 @@
 #
 # Generate performace data to graphite via garphios plugin ( also show all possible variables) 
 #
-#  ./check_naglio_aeropsike_statistics.pl -A   
+#  ./check_naglio_aerospike_namespace.pl -A   
 #
 # Check for limts in aerspike statistics:
 #
-#  ./check_naglio_aeropsike_statistics.pl -o 'PATTERN:TCP_mem_usage_percent,WARN:>70,CRIT:>85' -o 'PATTERN:TCP_orphans_usage_percent,WARN:>20,CRIT:>30' 
+#  ./check_naglio_aerospike_namespace.pl -o 'PATTERN:TCP_mem_usage_percent,WARN:>70,CRIT:>85' -o 'PATTERN:TCP_orphans_usage_percent,WARN:>20,CRIT:>30' 
 #
 
 # ======================= VERSION HISTORY and TODO ================================
@@ -104,7 +104,7 @@
 # 			 results in keyspace_hits, keyspace_misses, memory_utilization
 #			 having double 'c' or '%' in perfdata. Added contributors section.
 #  [0.73 - Mar 23, 2013] Fixed bug in parse_threshold function of embedded library
-#  [0.1  - Mar 13, 2014] First beta verion check_naglio_aeropsike_statistics
+#  [0.1  - Mar 13, 2014] First beta verion check_naglio_aerospike_namespace
 #
 # TODO or consider for future:
 #
@@ -158,8 +158,6 @@ use Data::Dumper;
 use Scalar::Util qw(looks_like_number);;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
 
-
-
 # Add path to additional libraries if necessary
 use lib '/usr/lib/nagios/plugins';
 our $TIMEOUT;
@@ -189,6 +187,7 @@ my @o_querykey=();		# query this key, this option maybe repeated so its an array
 my $o_prevperf= undef;		# performance data given with $SERVICEPERFDATA$ macro
 my $o_prevtime= undef;		# previous time plugin was run $LASTSERVICECHECK$ macro
 my $o_ratelabel=undef;		# prefix and suffix for creating rate variables
+my $o_namespace=undef;		# name of aerspike namespace to query by cmd: asinfo -v 'namespace/<namespace name>'
 my $o_rsuffix='_rate';          # default suffix        
 my $o_rprefix='';
 
@@ -1996,6 +1995,7 @@ sub check_options {
 	'f:s'   => \$o_perf,            'perfparse:s'   => \$o_perf,
 	'A:s'   => \$o_perfvars,        'perfvars:s'    => \$o_perfvars,
         'T:s'   => \$o_timecheck,       'response_time:s' => \$o_timecheck,
+        'n:s'   => \$o_namespace,       'namespace:s'    => \$o_namespace,  
         'o=s'   => \@o_check,           'check|option=s' => \@o_check,  
 	map { ($_) } $nlib->additional_options_list()
     );
@@ -2033,7 +2033,7 @@ $SIG{'ALRM'} = sub {
 
 ########## MAIN #######
 
-my $nlib = Naglio->lib_init('plugin_name' => 'check_naglio_aeropsike_statistics.pl',
+my $nlib = Naglio->lib_init('plugin_name' => 'check_naglio_aerospike_namespace.pl',
 			    'plugins_authors' => 'Marek Grzybowski',
 			    'plugin_description' => 'asinfo -v statistics check',
 			    'usage_function' => \&print_usage,
@@ -2045,7 +2045,12 @@ $argv_str = md5_base64( $argv_str ) ;
 $argv_str =~ s/[^a-zA-Z0-9]/x/g ;
 
 check_options($nlib);
-$nlib->verb("check_naglio_aeropsike_statistics.pl plugin version ".$Version);
+$nlib->verb("check_naglio_aerospike_namespace.pl plugin version ".$Version);
+
+# namespace options
+if (!defined($o_namespace)) { print "Please specify namespace (-n)\n"; print_usage(); exit $ERRORS{"UNKNOWN"}; }
+            
+
 
 # Check global timeout if plugin screws up
 if (defined($TIMEOUT)) {
@@ -2059,14 +2064,14 @@ else {
 
 
 
-my $cmd="asinfo -v statistics";
+my $cmd="asinfo -v namespace/".$o_namespace;
 $nlib->verb("Looking for values in output of  command:".$cmd);
 #print Dumper($cmd);
 my $asinfo_raw=`$cmd`;
 if ( $? != 0 ) { print "CRITICAL ERROR - command failed: $cmd\n"; exit $ERRORS{'CRITICAL'}; }
 
 my %asinfo; # Values to chek hash map  
-$asinfo_raw = $asinfo_raw =~ /requested value  statistics\nvalue is  (.*)/ ;
+$asinfo_raw = $asinfo_raw =~ /requested value  namespace\/\S+\nvalue is  (.*)/ ;
 my @vals_raw = split(';',$1);
 
 # print Dumper(\@vals_raw);
@@ -2099,7 +2104,7 @@ foreach my $ln (@vals_raw){
 # get old values, and calculate rates
 ###
   my $login = getlogin || getpwuid($<) || "Who";
-  my $save_file="/tmp/check_naglio_aerospike_".$login."_".$argv_str.'.perl';
+  my $save_file="/tmp/check_naglio_aerospike_namespace_".$login."_".$argv_str.'.perl';
   my $timenow=time();
   my %old_asinfo;
   my %copy_asinfo=%asinfo;
@@ -2117,7 +2122,7 @@ foreach my $ln (@vals_raw){
       close $in;
       my $timeold = delete $old_asinfo{'timenow'} ;
       while ( (my $key,my $val) = each(%old_asinfo )){
-        if ( $key =~ /(^.*err.*$)|(^batch_)|(^fabric_)|(^heartbeat_)|(^migrate_msg)|(^migrate_num_incoming)|(^query_)|(^sindex_)|(^stat_)|(^udf_)|(^write_)|(^reaped_fds)|(transactions)/ ) {
+        if ( $key =~ /(^.*objects$)|(^ltd)|(^set-)/ ) {
           if (looks_like_number($val)) {
             if ( $asinfo{$key} >= $old_asinfo{$key} ){
               $asinfo{$key.'_rate_ps'}=($asinfo{$key}-$old_asinfo{$key})/($timenow-$timeold);
